@@ -1,0 +1,454 @@
+{
+  "info": {
+    "name": "Rubrica Telefonica API",
+    "description": "Collection completa per la Rubrica Telefonica Spring Boot.\n\nCredenziali default: admin / admin\n\nOrdine consigliato:\n1. Auth - Login\n2. Persona - Crea\n3. Persona - Elenco\n4. Persona - Dettaglio\n5. Persona - Aggiorna\n6. Persona - Esporta\n7. Persona - Elimina",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "rubrica-telefonica-v1",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "URL base del server"
+    },
+    {
+      "key": "personaId",
+      "value": "1",
+      "type": "string",
+      "description": "ID persona da usare nelle chiamate di dettaglio/modifica/elimina"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Endpoint di autenticazione (EXTRA #2)",
+      "item": [
+        {
+          "name": "Login (admin/admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Login con le credenziali default.\n\nCredenziali: admin / admin\n\nRisposta attesa: 200 OK con UtenteDTO."
+          },
+          "response": [
+            {
+              "name": "Login riuscito",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": 1,\n  \"username\": \"admin\"\n}"
+            },
+            {
+              "name": "Credenziali errate",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"timestamp\": \"2024-01-15T10:30:00\",\n  \"status\": 401,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Credenziali non valide\",\n  \"path\": \"/api/v1/auth/login\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login - Credenziali errate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"passwordsbagliata\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Test con credenziali errate. Risposta attesa: 401 Unauthorized."
+          },
+          "response": []
+        },
+        {
+          "name": "Registra nuovo utente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"nuovoutente\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Registra un nuovo utente. La password viene hashata con BCrypt.\n\nRisposta attesa: 201 Created con UtenteDTO."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Persona - CRUD",
+      "description": "Operazioni CRUD complete sulle persone della rubrica",
+      "item": [
+        {
+          "name": "Elenco persone (no filtri)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone?page=0&size=10&sortBy=cognome&sortDir=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone"],
+              "query": [
+                { "key": "page", "value": "0", "description": "Pagina (0-based)" },
+                { "key": "size", "value": "10", "description": "Elementi per pagina" },
+                { "key": "sortBy", "value": "cognome", "description": "Campo di ordinamento" },
+                { "key": "sortDir", "value": "asc", "description": "Direzione: asc | desc" }
+              ]
+            },
+            "description": "Restituisce tutte le persone con paginazione default.\n\nRisposta attesa: 200 OK con PagedResponseDTO."
+          },
+          "response": []
+        },
+        {
+          "name": "Elenco persone - Filtro per nome",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone?nome=mario&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone"],
+              "query": [
+                { "key": "nome", "value": "mario", "description": "Filtro nome (ILIKE %mario%)" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Filtra per nome (case-insensitive contains)."
+          },
+          "response": []
+        },
+        {
+          "name": "Elenco persone - Filtro per cognome",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone?cognome=rossi&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone"],
+              "query": [
+                { "key": "cognome", "value": "rossi" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Filtra per cognome (case-insensitive contains)."
+          },
+          "response": []
+        },
+        {
+          "name": "Elenco persone - Filtro range età",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone?etaMin=20&etaMax=40&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone"],
+              "query": [
+                { "key": "etaMin", "value": "20", "description": "Età minima inclusa" },
+                { "key": "etaMax", "value": "40", "description": "Età massima inclusa" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Filtra per range di età. Usa Spring Specification con predicati AND composti."
+          },
+          "response": []
+        },
+        {
+          "name": "Elenco persone - Filtri combinati",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone?nome=mario&cognome=rossi&etaMin=25&etaMax=50&page=0&size=5&sortBy=eta&sortDir=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone"],
+              "query": [
+                { "key": "nome", "value": "mario" },
+                { "key": "cognome", "value": "rossi" },
+                { "key": "etaMin", "value": "25" },
+                { "key": "etaMax", "value": "50" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "5" },
+                { "key": "sortBy", "value": "eta" },
+                { "key": "sortDir", "value": "desc" }
+              ]
+            },
+            "description": "Tutti i filtri combinati con AND via Spring Specification."
+          },
+          "response": []
+        },
+        {
+          "name": "Dettaglio persona per ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone/{{personaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone", "{{personaId}}"]
+            },
+            "description": "Recupera una persona specifica per ID.\n\nRisposta 404 se non trovata."
+          },
+          "response": []
+        },
+        {
+          "name": "Crea persona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('personaId', body.id);",
+                  "    console.log('ID persona salvato:', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"indirizzo\": \"Via Roma 1, Milano\",\n  \"telefono\": \"3331234567\",\n  \"eta\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Crea una nuova persona nella rubrica.\n\nCampi obbligatori: nome, cognome, telefono.\nCampi opzionali: indirizzo, eta.\n\nIl test script salva automaticamente l'ID nella variabile `personaId`.\n\nRisposta attesa: 201 Created con PersonaDTO (con id generato)."
+          },
+          "response": [
+            {
+              "name": "Persona creata",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 1,\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"indirizzo\": \"Via Roma 1, Milano\",\n  \"telefono\": \"3331234567\",\n  \"eta\": 30\n}"
+            }
+          ]
+        },
+        {
+          "name": "Crea persona - Validazione fallisce",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"\",\n  \"cognome\": \"\",\n  \"telefono\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Test validazione: nome/cognome/telefono vuoti.\n\nRisposta attesa: 400 Bad Request con dettagli degli errori di validazione."
+          },
+          "response": []
+        },
+        {
+          "name": "Aggiorna persona (parziale)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone/{{personaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone", "{{personaId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"0612345678\",\n  \"eta\": 31\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Aggiornamento parziale: solo telefono e età vengono modificati.\nNome e cognome rimangono invariati (MapStruct ignora i campi null).\n\nRisposta attesa: 200 OK con PersonaDTO aggiornato."
+          },
+          "response": []
+        },
+        {
+          "name": "Aggiorna persona (completo)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone/{{personaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone", "{{personaId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Luigi\",\n  \"cognome\": \"Bianchi\",\n  \"indirizzo\": \"Via Milano 5, Roma\",\n  \"telefono\": \"0612345678\",\n  \"eta\": 35\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Aggiornamento completo di tutti i campi."
+          },
+          "response": []
+        },
+        {
+          "name": "Aggiorna persona - Non trovata (404)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone/9999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone", "9999"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Risposta attesa: 404 Not Found."
+          },
+          "response": []
+        },
+        {
+          "name": "Esporta persona in file TXT (EXTRA #1)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone/{{personaId}}/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone", "{{personaId}}", "export"]
+            },
+            "description": "Esporta i dati della persona in un file txt.\n\nIl file viene creato in: `informazioni/NOME-COGNOME-{id}.txt`\n\nImplementa il requisito **EXTRA #1** del progetto Rubrica.\n\nRisposta attesa: 200 OK (nessun body)."
+          },
+          "response": []
+        },
+        {
+          "name": "Elimina persona",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone/{{personaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone", "{{personaId}}"]
+            },
+            "description": "Elimina la persona con l'ID specificato.\n\nRisposta attesa: 204 No Content.\nRisposta 404 se non trovata."
+          },
+          "response": []
+        },
+        {
+          "name": "Elimina persona - Non trovata (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/persone/9999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "persone", "9999"]
+            },
+            "description": "Risposta attesa: 404 Not Found con ErrorResponseDTO."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

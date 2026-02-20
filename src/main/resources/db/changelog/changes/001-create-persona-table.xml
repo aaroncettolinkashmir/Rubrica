@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="001" author="rubrica">
+        <comment>Crea tabella persona per la rubrica telefonica</comment>
+        <createTable tableName="persona">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cognome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="indirizzo" type="VARCHAR(255)"/>
+            <column name="telefono" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eta" type="INT"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

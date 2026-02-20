@@ -1,0 +1,537 @@
+openapi: 3.0.3
+info:
+  title: Rubrica Telefonica API
+  version: 1.0.0
+  description: |
+    API REST per la gestione della rubrica telefonica.
+
+    ## Funzionalità
+    - **CRUD** completo per le Persone (nome, cognome, indirizzo, telefono, età)
+    - **Filtri dinamici** su nome, cognome, telefono e range di età (Spring Specification)
+    - **Paginazione e ordinamento** su tutti i campi
+    - **Autenticazione utenti** (login / registrazione) con password BCrypt
+    - **Esportazione** persona in file `.txt` (EXTRA #1)
+
+    ## Credenziali default
+    - Username: `admin`
+    - Password: `admin`
+
+    ## Documentazione interattiva
+    Disponibile su `/swagger-ui.html` quando l'applicazione è in esecuzione.
+
+servers:
+  - url: http://localhost:8080
+    description: Server locale (dev con H2)
+
+tags:
+  - name: Persona
+    description: Operazioni CRUD sulla rubrica telefonica
+  - name: Autenticazione
+    description: Login e registrazione utenti
+
+paths:
+
+  # ============================================================
+  # PERSONA endpoints
+  # ============================================================
+
+  /api/v1/persone:
+    get:
+      tags:
+        - Persona
+      summary: Elenco persone con filtri e paginazione
+      description: |
+        Restituisce una lista paginata di persone.
+        Tutti i parametri di filtro sono opzionali.
+        I filtri su nome/cognome/telefono usano `LIKE '%value%'` case-insensitive.
+      operationId: getAllPersone
+      parameters:
+        - name: nome
+          in: query
+          description: Filtro per nome (contains, case-insensitive)
+          required: false
+          schema:
+            type: string
+          example: Mario
+        - name: cognome
+          in: query
+          description: Filtro per cognome (contains, case-insensitive)
+          required: false
+          schema:
+            type: string
+          example: Rossi
+        - name: telefono
+          in: query
+          description: Filtro per numero di telefono (contains)
+          required: false
+          schema:
+            type: string
+          example: "333"
+        - name: etaMin
+          in: query
+          description: Età minima (inclusa)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          example: 20
+        - name: etaMax
+          in: query
+          description: Età massima (inclusa)
+          required: false
+          schema:
+            type: integer
+            maximum: 150
+          example: 60
+        - name: page
+          in: query
+          description: Numero pagina (0-based)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Numero di elementi per pagina
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: sortBy
+          in: query
+          description: Campo di ordinamento
+          required: false
+          schema:
+            type: string
+            default: cognome
+            enum: [id, nome, cognome, telefono, eta]
+        - name: sortDir
+          in: query
+          description: Direzione ordinamento
+          required: false
+          schema:
+            type: string
+            default: asc
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: Lista paginata di persone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponsePersonaDTO'
+              example:
+                content:
+                  - id: 1
+                    nome: Mario
+                    cognome: Rossi
+                    indirizzo: Via Roma 1
+                    telefono: "3331234567"
+                    eta: 30
+                pageNumber: 0
+                pageSize: 10
+                totalElements: 1
+                totalPages: 1
+                last: true
+
+    post:
+      tags:
+        - Persona
+      summary: Crea nuova persona
+      operationId: createPersona
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonaCreateDTO'
+            example:
+              nome: Mario
+              cognome: Rossi
+              indirizzo: Via Roma 1
+              telefono: "3331234567"
+              eta: 30
+      responses:
+        '201':
+          description: Persona creata con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonaDTO'
+        '400':
+          description: Dati non validi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+  /api/v1/persone/{id}:
+    get:
+      tags:
+        - Persona
+      summary: Recupera persona per ID
+      operationId: getPersonaById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Persona trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonaDTO'
+        '404':
+          description: Persona non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+    put:
+      tags:
+        - Persona
+      summary: Aggiorna persona (aggiornamento parziale)
+      description: I campi `null` nel body vengono ignorati (l'entità mantiene i valori esistenti).
+      operationId: updatePersona
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonaUpdateDTO'
+            example:
+              telefono: "0612345678"
+              eta: 31
+      responses:
+        '200':
+          description: Persona aggiornata con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonaDTO'
+        '404':
+          description: Persona non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+    delete:
+      tags:
+        - Persona
+      summary: Elimina persona
+      operationId: deletePersona
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '204':
+          description: Persona eliminata con successo
+        '404':
+          description: Persona non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+  /api/v1/persone/{id}/export:
+    post:
+      tags:
+        - Persona
+      summary: Esporta persona in file TXT
+      description: |
+        Crea o sovrascrive il file: `informazioni/NOME-COGNOME-{id}.txt`
+
+        Implementa il requisito **EXTRA #1** del progetto.
+      operationId: exportPersonaToFile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: File esportato con successo
+        '404':
+          description: Persona non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+  # ============================================================
+  # AUTH endpoints
+  # ============================================================
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Autenticazione
+      summary: Login utente
+      description: |
+        Autentica l'utente con username e password.
+
+        **Credenziali default**: `admin` / `admin`
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestDTO'
+            example:
+              username: admin
+              password: admin
+      responses:
+        '200':
+          description: Login riuscito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtenteDTO'
+              example:
+                id: 1
+                username: admin
+        '401':
+          description: Credenziali non valide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Autenticazione
+      summary: Registra nuovo utente
+      description: La password viene hashata automaticamente con BCrypt prima del salvataggio.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestDTO'
+            example:
+              username: nuovoutente
+              password: password123
+      responses:
+        '201':
+          description: Utente registrato con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtenteDTO'
+        '409':
+          description: Username già in uso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+# ============================================================
+# Schemas
+# ============================================================
+
+components:
+  schemas:
+
+    PersonaDTO:
+      type: object
+      description: Rappresentazione completa di una persona nella rubrica
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID univoco generato dal database
+          example: 1
+        nome:
+          type: string
+          maxLength: 100
+          example: Mario
+        cognome:
+          type: string
+          maxLength: 100
+          example: Rossi
+        indirizzo:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: Via Roma 1
+        telefono:
+          type: string
+          maxLength: 20
+          example: "3331234567"
+        eta:
+          type: integer
+          minimum: 0
+          maximum: 150
+          nullable: true
+          example: 30
+
+    PersonaCreateDTO:
+      type: object
+      description: Dati per la creazione di una nuova persona
+      required:
+        - nome
+        - cognome
+        - telefono
+      properties:
+        nome:
+          type: string
+          maxLength: 100
+          example: Mario
+        cognome:
+          type: string
+          maxLength: 100
+          example: Rossi
+        indirizzo:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: Via Roma 1
+        telefono:
+          type: string
+          example: "3331234567"
+        eta:
+          type: integer
+          minimum: 0
+          maximum: 150
+          nullable: true
+          example: 30
+
+    PersonaUpdateDTO:
+      type: object
+      description: |
+        Dati per l'aggiornamento di una persona esistente.
+        Tutti i campi sono opzionali: quelli `null` vengono ignorati
+        (l'entità mantiene i valori esistenti).
+      properties:
+        nome:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: Luigi
+        cognome:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: Bianchi
+        indirizzo:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: Via Milano 5
+        telefono:
+          type: string
+          nullable: true
+          example: "0612345678"
+        eta:
+          type: integer
+          minimum: 0
+          maximum: 150
+          nullable: true
+          example: 35
+
+    PagedResponsePersonaDTO:
+      type: object
+      description: Risposta paginata con lista di persone e metadati di paginazione
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonaDTO'
+        pageNumber:
+          type: integer
+          description: Numero della pagina corrente (0-based)
+          example: 0
+        pageSize:
+          type: integer
+          description: Numero di elementi per pagina
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+          description: Numero totale di elementi
+          example: 42
+        totalPages:
+          type: integer
+          description: Numero totale di pagine
+          example: 5
+        last:
+          type: boolean
+          description: true se questa è l'ultima pagina
+          example: false
+
+    UtenteDTO:
+      type: object
+      description: Rappresentazione pubblica di un utente (la password non viene mai esposta)
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: admin
+
+    LoginRequestDTO:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+          example: admin
+        password:
+          type: string
+          minLength: 1
+          example: admin
+
+    ErrorResponseDTO:
+      type: object
+      description: Risposta di errore standardizzata
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00"
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          example: Persona con id 99 non trovata
+        path:
+          type: string
+          example: /api/v1/persone/99
